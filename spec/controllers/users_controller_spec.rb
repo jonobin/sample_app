@@ -15,11 +15,12 @@ describe UsersController do
     describe "for signed-in users" do
       
       before(:each) do
-        @user = test_sign_in(Factory(:user))
-        second = Factory(:user, :email => "another@example.com")
+        @user = Factory(:user).toggle(:admin)
+        test_sign_in(@user)
+        @second = Factory(:user, :email => "another@example.com")
         third = Factory(:user, :email => "another@example.net")
         
-        @users = [@user, second, third]
+        @users = [@user, @second, third]
         30.times do
           @users << Factory(:user, :email => Factory.next(:email))
         end
@@ -39,6 +40,22 @@ describe UsersController do
         get :index
         @users[0..2].each do |user|
           response.should have_selector("li", :content => user.name)
+        end
+      end
+      
+      describe "for admin users" do
+        it "should have delete links" do
+          get :index
+          response.should have_selector("a", :content => "delete") 
+        end
+      end
+      
+      describe "for non-admin users" do
+        it "should not have delete links" do
+          # this user should not have admin rights, and as such, should not see delete links in the users listing
+          test_sign_in(@second)
+          get :index
+          response.should_not have_selector("a", :content => "delete") 
         end
       end
       
@@ -258,8 +275,14 @@ describe UsersController do
     
     describe "as an admin user" do
       before(:each) do
-        admin = Factory(:user, :email => "admin@example.com", :admin => true)
-        test_sign_in(admin)
+        @admin = Factory(:user, :email => "admin@example.com", :admin => true)
+        test_sign_in(@admin)
+      end
+      
+      it "should not be able to destroy self" do
+        lambda do
+          delete :destroy, :id => @admin
+        end.should_not change(User, :count)
       end
       
       it "should destroy the user" do

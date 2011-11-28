@@ -4,6 +4,9 @@ class UsersController < ApplicationController
   before_filter :correct_user, :only => [:edit, :update]
   before_filter :admin_user, :only => :destroy
   
+  # TODO: Exercise 10.6.3. Does this solve everything though? And is this the proper solution?
+  before_filter :redirect_signed_in_users, :only => [:create, :new]
+  
   def index
     @title = "All users"
     @users = User.paginate(:page => params[:page])
@@ -49,12 +52,21 @@ class UsersController < ApplicationController
   end
   
   def destroy
-    User.find(params[:id]).destroy
-    flash[:success] = "User destroyed."
+    @user = User.find(params[:id])
+    if(@user == current_user)
+      flash[:error] = "Cannot destroy own user account"
+    else
+      @user.destroy
+      flash[:success] = "User destroyed."  
+    end
     redirect_to users_path
   end
   
   private
+  
+  def redirect_signed_in_users
+    redirect_to(root_path) unless !signed_in?
+  end
   
   def admin_user
     redirect_to(root_path) unless current_user.admin?
