@@ -1,7 +1,8 @@
 <%= form_for @micropost do |f| %>
 	<%= render 'shared/error_messages', :object => f.object %>
+	Characters remaining: <span id="counter"></span>
 	<div class="field">
-		<%= f.text_area :content%>
+		<%= f.text_area :content %>
 	</div>
 	<div class="actions">
 		<%= f.submit "Submit" %>
