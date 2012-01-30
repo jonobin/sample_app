@@ -60,4 +60,28 @@ describe "Microposts" do
       end.should change(Micropost, :count).by(2)
     end
   end
+
+  describe "display all microposts" do
+    before(:each) do
+      content = "Goober says hey!"
+
+      2.times do |n|
+        visit root_path
+        fill_in :micropost_content, :with => content + n.to_s()
+        click_button
+      end
+    end
+
+    it "should display microposts" do
+      visit user_microposts_path(@user)
+      response.should have_selector("td", :class => "micropost")
+      response.should have_selector("span", :class => "content")
+    end
+
+    it "should show the proper count of microposts" do
+      visit user_microposts_path(@user)
+
+      response.should have_selector("span", :class => "num_posts", :content => @user.microposts.count.to_s())
+    end
+  end
 end

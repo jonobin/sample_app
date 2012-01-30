@@ -132,13 +132,44 @@ describe UsersController do
       response.should have_selector("h1>img", :class => "gravatar")
     end
     
-    it "should show the user's microposts" do
-      mp1 = Factory(:micropost, :user => @user, :content => "Foo bar")
-      mp2 = Factory(:micropost, :user => @user, :content => "Baz quux")
-      get :show, :id => @user
-      response.should have_selector("span.content", :content => mp1.content)
-      response.should have_selector("span.content", :content => mp2.content)
-    end
+    describe "using microposts" do
+      before(:each) do
+        mp1 = Factory(:micropost, :user => @user, :content => "Foo bar")
+        mp2 = Factory(:micropost, :user => @user, :content => "Baz quux")
+        @test_microposts = [mp1, mp2]
+      end
+
+      it "should show the user's microposts" do
+        get :show, :id => @user
+        response.should have_selector("span.content", :content => @test_microposts[0].content)
+        response.should have_selector("span.content", :content => @test_microposts[1].content)
+      end
+      
+      it "should paginate microposts" do
+        # number of microposts that triggers pagination
+        paginationNum = 30 + 1
+        
+        # create more microposts for the sample user to enable pagination (30 microposts)
+        paginationNum.times do 
+          Factory(:micropost, :user => @user, :content => "Sample Micropost")
+        end
+        
+        get :show, :id => @user
+        response.should have_selector("div.pagination")
+        response.should have_selector("span.disabled", :content => "Previous")
+        
+        # for some reason, the user we create is id = 1. Guess this is all done in isolation...
+        response.should have_selector("a", :href => "/users/1?escape=false&page=2", :content => "2")
+        response.should have_selector("a", :href => "/users/1?escape=false&page=2", :content => "Next")
+      end
+
+      it "should not show delete link if signed in user didn't create post" do
+        signed_in_user = Factory(:user, :email => "eddiewillers@tt.com")
+        test_sign_in(signed_in_user)
+        get :show, :id => signed_in_user
+        response.should_not have_selector("a", :content => "delete")
+      end
+    end 
   end
   
   describe "POST 'create'" do
